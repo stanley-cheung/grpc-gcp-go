@@ -1,0 +1,58 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+
+	gcspb "github.com/stanley-cheung/grpc-gcp-go/e2e-examples/gcs/cloud.google.com/go/storage/genproto/apiv2/storagepb"
+
+	"google.golang.org/grpc"
+	_ "google.golang.org/grpc/balancer/rls"
+	grpcgoogle "google.golang.org/grpc/credentials/google"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/resolver"
+	_ "google.golang.org/grpc/xds/googledirectpath"
+)
+
+func getGrpcClient() gcspb.StorageClient {
+	resolver.SetDefaultScheme("dns")
+	var grpcOpts []grpc.DialOption
+	endpoint := "google-c2p:///storage.googleapis.com"
+	grpcOpts = []grpc.DialOption{
+		grpc.WithCredentialsBundle(
+			grpcgoogle.NewComputeEngineCredentials(),
+		),
+	}
+	conn, err := grpc.Dial(endpoint, grpcOpts...)
+	if err != nil {
+		fmt.Println("Failed to create clientconn: %v", err)
+		os.Exit(1)
+	}
+	return gcspb.NewStorageClient(conn)
+}
+
+func makeGrpcRequest(client gcspb.StorageClient) {
+	ctx := context.Background()
+	req := gcspb.ReadObjectRequest{
+		Bucket: "projects/_/buckets/stanleycheung-bucket",
+		Object: "test01.txt",
+	}
+	ctx = metadata.AppendToOutgoingContext(ctx, "x-goog-request-params", "bucket=projects/_/buckets/stanleycheung-bucket")
+	stream, err := client.ReadObject(ctx, &req)
+	if err != nil {
+		fmt.Println("ReadObject got error: ", err)
+		os.Exit(1)
+	}
+	resp, err := stream.Recv()
+	if err != nil {
+		fmt.Println("ReadObject Recv error: ", err)
+		os.Exit(1)
+	}
+	fmt.Println("ReadObject result: ", resp.ChecksummedData.String())
+}
+
+func main() {
+	grpcClient := getGrpcClient()
+	makeGrpcRequest(grpcClient)
+}
