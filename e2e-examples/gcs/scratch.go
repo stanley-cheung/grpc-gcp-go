@@ -59,7 +59,7 @@ func writeRequest(client gcspb.StorageClient) {
 	data := []byte("test test test\ntest test test \n")
 	crc32c := crc32.MakeTable(crc32.Castagnoli)
 	checksum := crc32.Checksum(data, crc32c)
-	fmt.Printf("CRC32C checksum: 0x%X\n", checksum)
+	fmt.Println("CRC32C checksum: ", checksum)
 }
 
 func main() {
