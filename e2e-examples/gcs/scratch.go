@@ -9,7 +9,7 @@ import (
 
 	"google.golang.org/grpc"
 	_ "google.golang.org/grpc/balancer/rls"
-	grpcgoogle "google.golang.org/grpc/credentials/google"
+	"google.golang.org/grpc/credentials/google"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/resolver"
 	_ "google.golang.org/grpc/xds/googledirectpath"
@@ -17,11 +17,12 @@ import (
 
 func getGrpcClient() gcspb.StorageClient {
 	resolver.SetDefaultScheme("dns")
-	var grpcOpts []grpc.DialOption
 	endpoint := "google-c2p:///storage.googleapis.com"
+
+	var grpcOpts []grpc.DialOption
 	grpcOpts = []grpc.DialOption{
 		grpc.WithCredentialsBundle(
-			grpcgoogle.NewComputeEngineCredentials(),
+			google.NewComputeEngineCredentials(),
 		),
 	}
 	conn, err := grpc.Dial(endpoint, grpcOpts...)
@@ -32,13 +33,14 @@ func getGrpcClient() gcspb.StorageClient {
 	return gcspb.NewStorageClient(conn)
 }
 
-func makeGrpcRequest(client gcspb.StorageClient) {
+func readRequest(client gcspb.StorageClient) {
 	ctx := context.Background()
 	req := gcspb.ReadObjectRequest{
 		Bucket: "projects/_/buckets/stanleycheung-bucket",
 		Object: "test01.txt",
 	}
-	ctx = metadata.AppendToOutgoingContext(ctx, "x-goog-request-params", "bucket=projects/_/buckets/stanleycheung-bucket")
+	ctx = metadata.AppendToOutgoingContext(ctx,
+		"x-goog-request-params", "bucket=projects/_/buckets/stanleycheung-bucket")
 	stream, err := client.ReadObject(ctx, &req)
 	if err != nil {
 		fmt.Println("ReadObject got error: ", err)
@@ -54,5 +56,5 @@ func makeGrpcRequest(client gcspb.StorageClient) {
 
 func main() {
 	grpcClient := getGrpcClient()
-	makeGrpcRequest(grpcClient)
+	readRequest(grpcClient)
 }
