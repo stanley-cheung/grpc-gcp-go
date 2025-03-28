@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"hash/crc32"
 	"os"
 
 	gcspb "github.com/stanley-cheung/grpc-gcp-go/e2e-examples/gcs/cloud.google.com/go/storage/genproto/apiv2/storagepb"
@@ -54,7 +55,15 @@ func readRequest(client gcspb.StorageClient) {
 	fmt.Println("ReadObject result: ", resp.ChecksummedData.String())
 }
 
+func writeRequest(client gcspb.StorageClient) {
+	data := []byte("test test test\ntest test test \n")
+	crc32c := crc32.MakeTable(crc32.Castagnoli)
+	checksum := crc32.Checksum(data, crc32c)
+	fmt.Printf("CRC32C checksum: 0x%X\n", checksum)
+}
+
 func main() {
 	grpcClient := getGrpcClient()
 	readRequest(grpcClient)
+	writeRequest(grpcClient)
 }
